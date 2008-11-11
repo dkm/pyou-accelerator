@@ -2,6 +2,8 @@
 import cwiid
 import time
 import sys
+from testpygame import Graph
+import pygame
 
 pattern = "X[%s] Y[%s] Z[%s]\r"
 
@@ -23,19 +25,14 @@ rpt_mode ^= cwiid.RPT_ACC
 
 wm.rpt_mode = rpt_mode
 
+g = Graph()
 
 while True:
     st = wm.state
-    print pattern %(get_str(st['acc'][0]),
-                    get_str(st['acc'][1]),
-                    get_str(st['acc'][2])),
-    sys.stdout.flush()
 
-
-
-        
-
-
-# wm.enable(cwiid.FLAG_MESG_IFC)
-
-# wm.mesg_callback = cback
+    g.do_acc3d(st['acc'])
+    pygame.time.wait(10)
+#     print pattern %(get_str(st['acc'][0]),
+#                     get_str(st['acc'][1]),
+#                     get_str(st['acc'][2])),
+#     sys.stdout.flush()
