@@ -1,4 +1,4 @@
-#!/usr/bin/env python2.5
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # Copyright (C) 2008 Marc Poulhiès
 #
@@ -24,28 +24,11 @@ import sys
 from testpygame import Graph
 import pygame
 import os
-import getopt
+import optparse
 
 pattern = "X[%s] Y[%s] Z[%s]\r"
 
 max=15
-
-cliargs = [('g', 'gui', "Use Graphical User Interface"),
-           ('f:', 'freq=', "Sampling frequency in ms (defaults: 10ms) "),
-           ('w', 'wiimote', "Wiimote BT address (ex:00:1D:BC:3B:2D:C3)"),
-           ('v', 'verbose', "Be verbose and display lots of garbage"),
-           ('h','help','Displays this help text')]
-
-
-def help():
-    print "Wii fun stuff :p"
-    for s,l,c in cliargs:
-        print "-%s" %s.replace(":",""),
-        if l != '':
-            print "/--%s" %l.replace("=",""),
-        print ""
-        print "   %s" %c
-        print ""
 
 def get_str(x):
     full = max*x/255
@@ -53,44 +36,59 @@ def get_str(x):
     s = " "*empty + "#"*full
     return s
 
-
-
+def do_log(file, accs):
+    norms = [a * 250/255 for a in accs]
+    print "Logged"
+    print >>file, "ici", norms
 
 def main():
-    wiimote_hwaddr = None
-    sampling_freq = 10
-    use_gui = False
-    verbose = False
+    parser = optparse.OptionParser(
+        usage='Usage: %prog [options]',
+        description="Acceleration pyou !")
+    
+    parser.add_option("-l", "--log",
+                      help="Log to file", metavar="FILE")
+    parser.add_option("-g", "--gui",
+                      help="Use Graphical User Interface",
+                      action="store_true", default=False, 
+                      metavar="use_gui")
+    parser.add_option("-f", "--freq",
+                      help="Sampling frequency in ms (defaults: 10ms)",
+                      default=10, type="int",
+                      metavar="sampling_freq")
+    parser.add_option("-w", "--wiimote",
+                      help="Wiimote BT address (ex:00:1D:BC:3B:2D:C3)",
+                      metavar="wiimote_hwaddr")
+    parser.add_option("-v", "--verbose",
+                      help="Be verbose and display lots of garbage",
+                      action="store_true", default=False,
+                      metavar="verbose")
+    
+    (options, args) = parser.parse_args(sys.argv[1:])
 
-    try:
-        opts, args = getopt.getopt(sys.argv[1:], "".join([x[0] for x in cliargs]),
-                                   [x[1] for x in cliargs])
-    except getopt.GetoptError, e:
-        help()
-        print e
-        sys.exit(2)
+    use_gui = options.gui
 
-
-    for o, a in opts:
-        if o in ("-g", "--gui"):
-            use_gui = True
-        if o in ("-f", "--freq"):
-            sampling_freq = int(a.strip())
-        if o in ("-w", "--wiimote"):
-            wiimote_hwaddr = a.strip()
-        if o in ("-v", "--verbose"):
-            verbose = True
-        if o in ("-h", "--help"):
-            help()
-            return
+    sampling_freq = options.freq
+    wiimote_hwaddr = options.wiimote
+    verbose = options.verbose
+    logfile = None
 
     if verbose:
-        if gui:
+
+        if use_gui:
             print "Will use GUI"
         else:
             print "Won't use GUI"
+
+        if options.log != None:
+            print "Will log to", options.log
+            logfile = open(options.log, "w")
+
+        else:
+            print "Won't log"
         print "Sampling freq is %dms" %sampling_freq
         print "Wiimote address: ", wiimote_hwaddr
+
 
     wm = cwiid.Wiimote(wiimote_hwaddr)
 
@@ -107,7 +105,10 @@ def main():
         st = wm.state
         if use_gui:
             g.do_acc3d(st['acc'])
-        pygame.time.wait(10)
+        if logfile != None:
+            do_log(logfile, st['acc'])
+
+        pygame.time.wait(sampling_freq)
 
 if __name__ == '__main__':
     sys.exit(main())
