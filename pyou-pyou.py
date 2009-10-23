@@ -25,6 +25,8 @@ from testpygame import Graph
 import pygame
 import os
 import optparse
+from datetime import datetime
+import math
 
 pattern = "X[%s] Y[%s] Z[%s]\r"
 
@@ -37,9 +39,32 @@ def get_str(x):
     return s
 
 def do_log(file, accs):
-    norms = [a * 250/255 for a in accs]
-    print "Logged"
-    print >>file, "ici", norms
+    d = datetime.now()
+
+    sum = math.sqrt((accs[0]+accs[1]+accs[2])**2)
+    norm= math.pow(sum, 1/3.)
+
+    s = d.isoformat() + " %f %f %f %f" %(accs[0], accs[1], 
+                                         accs[2], norm)
+    print >>file, s
+
+
+def acc_norm(acc, cal):
+    return [(v - c0)/float(c1 - c0) for v, c0, c1 in zip(acc, cal[0], cal[1])]
+
+
+# def acc_normalize(acc_zero, acc_one, acc):
+#     r = []
+#     for i in xrange(3):
+#         zero = acc_zero[i]
+#         one = acc_one[i]
+#         u = one-zero
+#         v = acc[i]
+        
+#         print float(v-zero)/u
+#         r.append(float(v-zero)/u)
+            
+#     return r
 
 def main():
     parser = optparse.OptionParser(
@@ -81,8 +106,13 @@ def main():
             print "Won't use GUI"
 
         if options.log != None:
-            print "Will log to", options.log
-            logfile = open(options.log, "w")
+            print "Will log to", options.log,
+            if options.log == "-":
+                print " STDOUT"
+                logfile = sys.stdout
+            else:
+                print "EXT FILE"
+                logfile = open(options.log, "w")
 
         else:
             print "Won't log"
@@ -98,15 +128,19 @@ def main():
 
     wm.rpt_mode = rpt_mode
 
+    cal = wm.get_acc_cal(cwiid.EXT_NONE)
+
     if use_gui:
         g = Graph()
 
     while True:
         st = wm.state
+        stn = acc_norm(st['acc'], cal)
+
         if use_gui:
             g.do_acc3d(st['acc'])
         if logfile != None:
-            do_log(logfile, st['acc'])
+            do_log(logfile, stn)
 
         pygame.time.wait(sampling_freq)
 
